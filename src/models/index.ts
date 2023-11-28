@@ -42,3 +42,9 @@ export type Metric = {
   nota_saeb_media_padronizada: StringOrNull;
   projecao: StringOrNull;
 };
+
+export type City = {
+  id_municipio: StringOrNull;
+  nome: StringOrNull;
+  sigla_uf: StringOrNull;
+};

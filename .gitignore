@@ -6,3 +6,6 @@ build
 
 # Env Variables
 .env
+
+# Data
+data
