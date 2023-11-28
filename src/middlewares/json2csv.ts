@@ -1,18 +1,25 @@
 import fs from "fs";
 import { json2csv } from "json-2-csv";
+import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 
-import { Metric, School } from "@/models";
+import { Metric, RawSchool, School } from "@/models";
 
 const apiUrl = "http://educacao.dadosabertosbr.org/api/escola/";
 
-async function readJsonFile(filePath: string): Promise<any> {
+interface SchoolWithNames extends School {
+  nome: string | null;
+}
+
+async function readJsonFile(
+  filePath: string
+): Promise<{ schools: SchoolWithNames[]; metrics: Metric[] } | null> {
   try {
     const jsonData = fs.readFileSync(filePath, "utf8");
-    const dataWithoutNames: School[] = JSON.parse(jsonData);
+    const dataWithoutNames: RawSchool[] = JSON.parse(jsonData);
 
-    const schoolsWithNamesPromises: Promise<School>[] = dataWithoutNames.map(
-      async (school: School) => {
+    const schoolsWithNamesPromises: Promise<SchoolWithNames>[] =
+      dataWithoutNames.map(async (school: RawSchool) => {
         const { id_escola } = school;
         let nome = null;
 
@@ -22,20 +29,42 @@ async function readJsonFile(filePath: string): Promise<any> {
 
           console.log(nome);
         } catch (error) {
-          console.log("NOT FOUND");
+          console.log("NULL");
         }
 
         return {
-          ...school,
+          id_escola,
           nome,
+          id_municipio: school.id_municipio,
+          sigla_uf: school.sigla_uf,
+          rede: school.rede,
+          ensino: school.ensino,
         };
-      }
+      });
+
+    const schoolsWithNames: SchoolWithNames[] = await Promise.all(
+      schoolsWithNamesPromises
     );
+    const schools: SchoolWithNames[] = schoolsWithNames.filter(
+      Boolean
+    ) as SchoolWithNames[];
 
-    const metricsPromises = dataWithoutNames.map(async (school) => {});
-
-    const schools = await Promise.all(schoolsWithNamesPromises);
-    const metrics = await Promise.all(metricsPromises);
+    const metrics: Metric[] = dataWithoutNames.map((school: RawSchool) => {
+      return {
+        id_metrica: uuidv4(),
+        ano: school.ano,
+        id_escola: school.id_escola,
+        ensino: school.ensino,
+        anos_escolares: school.anos_escolares,
+        ideb: school.ideb,
+        taxa_aprovacao: school.taxa_aprovacao,
+        indicador_rendimento: school.indicador_rendimento,
+        nota_saeb_matematica: school.nota_saeb_matematica,
+        nota_saeb_lingua_portuguesa: school.nota_saeb_lingua_portuguesa,
+        nota_saeb_media_padronizada: school.nota_saeb_media_padronizada,
+        projecao: school.projecao,
+      };
+    });
 
     return { schools, metrics };
   } catch (error) {
@@ -44,39 +73,51 @@ async function readJsonFile(filePath: string): Promise<any> {
   }
 }
 
-async function jsonToCsv(filePath: string): Promise<string | null> {
-  const jsonData = await readJsonFile(filePath);
-  if (!jsonData) {
+async function jsonToCsv(
+  filePath: string,
+  outputSchoolsCsvFilePath: string,
+  outputMetricsCsvFilePath: string
+): Promise<void> {
+  const data = await readJsonFile(filePath);
+  if (!data) {
     console.error("No data to convert.");
-    return null;
+    return;
   }
 
   try {
-    const csv = await json2csv(jsonData);
-    return csv;
+    const schoolsCsv = await json2csv(data.schools);
+    writeCsvToFile(schoolsCsv, outputSchoolsCsvFilePath);
+
+    const metricsCsv = await json2csv(data.metrics);
+    writeCsvToFile(metricsCsv, outputMetricsCsvFilePath);
+
+    console.log(
+      "CSV data has been written to",
+      outputSchoolsCsvFilePath,
+      "and",
+      outputMetricsCsvFilePath
+    );
   } catch (error) {
     console.error("Error converting JSON to CSV:", error);
-    return null;
   }
 }
 
 function writeCsvToFile(csvData: string, outputFilePath: string): void {
   try {
     fs.writeFileSync(outputFilePath, csvData);
-    console.log("CSV data has been written to", outputFilePath);
   } catch (error) {
     console.error("Error writing CSV to file:", error);
   }
 }
 
 const jsonFilePath = "./data/dataset.json";
-const outputCsvFilePath = "./data/dataset.csv";
-jsonToCsv(jsonFilePath)
-  .then((csvData) => {
-    if (csvData) {
-      writeCsvToFile(csvData, outputCsvFilePath);
-    }
-  })
-  .catch((error) => {
-    console.error("Error:", error);
-  });
+const outputSchoolsCsvFilePath = "./data/schools.csv";
+const outputMetricsCsvFilePath = "./data/metrics.csv";
+
+jsonToCsv(
+  jsonFilePath,
+  outputSchoolsCsvFilePath,
+  outputMetricsCsvFilePath
+).catch((error) => {
+  console.error("Error:", error);
+});
