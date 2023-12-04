@@ -21,7 +21,7 @@ export async function fetchMetrics(
         id_escola,
       },
       orderBy: {
-        ano: "asc",
+        ano: "desc",
       },
     });
 
