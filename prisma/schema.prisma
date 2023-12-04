@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,4 +5,34 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Metric {
+  id_metrica                  String  @id
+  ano                         String?
+  id_escola                   String
+  ensino                      String?
+  anos_escolares              String?
+  ideb                        String?
+  taxa_aprovacao              String?
+  indicador_rendimento        String?
+  nota_saeb_matematica        String?
+  nota_saeb_lingua_portuguesa String?
+  nota_saeb_media_padronizada String?
+  projecao                    String?
+  schools                     School  @relation(fields: [id_escola], references: [id_escola], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("school_metrics")
+}
+
+model School {
+  id_escola      String   @id
+  nome           String?
+  id_municipio   String?
+  sigla_uf       String?
+  rede           String?
+  ensino         String?
+  school_metrics Metric[]
+
+  @@map("schools")
 }

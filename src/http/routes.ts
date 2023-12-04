@@ -1,12 +1,10 @@
-import axios from "axios";
 import { FastifyInstance } from "fastify";
 
-export async function appRoutes(app: FastifyInstance) {
-  app.get("/teste", async (req, res) => {
-    const response = await axios.get(
-      "http://educacao.dadosabertosbr.org/api/escola/26124297"
-    );
+import { fetchSchools } from "./controllers/fetchSchools";
+import { fetchMetrics } from "./controllers/fetchMetrics";
 
-    return res.send(response.data);
-  });
+export async function appRoutes(app: FastifyInstance) {
+  app.get("/schools", fetchSchools);
+
+  app.post("/metrics", fetchMetrics);
 }
