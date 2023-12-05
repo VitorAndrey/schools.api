@@ -24,6 +24,14 @@ export async function fetchMetrics(
       },
     });
 
+    const schools = await prisma.school.findMany({
+      where: {
+        id_escola,
+      },
+    });
+
+    const nome = schools[0].nome;
+
     const formattedMetrics = metrics.reduce((acc, metric) => {
       const {
         ano,
@@ -74,7 +82,7 @@ export async function fetchMetrics(
       }
     }
 
-    return reply.send({ metrics: formattedData }).status(200);
+    return reply.send({ nome, data: formattedData }).status(200);
   } catch (error) {
     return reply.send("Error while fetching metrics\n" + error).status(500);
   }
