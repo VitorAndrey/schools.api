@@ -52,18 +52,18 @@ export async function fetchMetrics(
         };
       }
 
-      acc[formattedAnosEscolares].ideb.push({ ano, nota: ideb });
+      acc[formattedAnosEscolares].ideb.push({ ano, total: ideb });
       acc[formattedAnosEscolares].taxa_aprovacao.push({
         ano,
-        nota: taxa_aprovacao,
+        total: taxa_aprovacao,
       });
       acc[formattedAnosEscolares].indicador_rendimento.push({
         ano,
-        nota: indicador_rendimento,
+        total: indicador_rendimento,
       });
       acc[formattedAnosEscolares].nota_saeb_lingua_portuguesa.push({
         ano,
-        nota: nota_saeb_lingua_portuguesa,
+        total: nota_saeb_lingua_portuguesa,
       });
 
       return acc;
