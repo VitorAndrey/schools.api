@@ -1,5 +1,4 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -25,18 +24,57 @@ export async function fetchMetrics(
       },
     });
 
-    const school = await prisma.school.findMany({
-      where: {
-        id_escola,
-      },
-    });
+    const formattedMetrics = metrics.reduce((acc, metric) => {
+      const {
+        ano,
+        anos_escolares,
+        ideb,
+        taxa_aprovacao,
+        indicador_rendimento,
+        nota_saeb_lingua_portuguesa,
+      } = metric;
+      const formattedAnosEscolares = anos_escolares?.replace(/\s/g, ""); // Remover espaços
 
-    const data = {
-      nome: school[0].nome,
-      data: metrics,
-    };
+      if (!acc[formattedAnosEscolares]) {
+        acc[formattedAnosEscolares] = {
+          ideb: [],
+          taxa_aprovacao: [],
+          indicador_rendimento: [],
+          nota_saeb_lingua_portuguesa: [],
+        };
+      }
 
-    return reply.send(data).status(200);
+      acc[formattedAnosEscolares].ideb.push({ ano, nota: ideb });
+      acc[formattedAnosEscolares].taxa_aprovacao.push({
+        ano,
+        nota: taxa_aprovacao,
+      });
+      acc[formattedAnosEscolares].indicador_rendimento.push({
+        ano,
+        nota: indicador_rendimento,
+      });
+      acc[formattedAnosEscolares].nota_saeb_lingua_portuguesa.push({
+        ano,
+        nota: nota_saeb_lingua_portuguesa,
+      });
+
+      return acc;
+    }, {});
+
+    const formattedData = {};
+
+    for (const anosEscolares in formattedMetrics) {
+      const metricsByAnosEscolares = formattedMetrics[anosEscolares];
+      for (const metricType in metricsByAnosEscolares) {
+        if (!formattedData[metricType]) {
+          formattedData[metricType] = {};
+        }
+        formattedData[metricType][anosEscolares] =
+          metricsByAnosEscolares[metricType];
+      }
+    }
+
+    return reply.send({ metrics: formattedData }).status(200);
   } catch (error) {
     return reply.send("Error while fetching metrics\n" + error).status(500);
   }
